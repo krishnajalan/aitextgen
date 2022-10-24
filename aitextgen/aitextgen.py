@@ -555,7 +555,7 @@ class aitextgen:
         fp16: bool = False,
         fp16_opt_level: str = "O1",
         devices: int = -1,
-        accelerator: str = None,
+        accelerator: str = 'cpu',
         n_gpu: int = -1,
         # tpu_cores: int = 0, # deprecated
         max_grad_norm: float = 0.5,
@@ -710,7 +710,6 @@ class aitextgen:
 
         train_params = dict(
             accumulate_grad_batches=gradient_accumulation_steps,
-            gpus=n_gpu,
             max_steps=num_steps,
             gradient_clip_val=max_grad_norm,
             enable_checkpointing=False, #checkpoint_callback deprecated in pytorch_lighning v1.7
@@ -734,6 +733,7 @@ class aitextgen:
             plugins=deepspeed_plugin,
         )
 
+        train_params['accelerator'] = accelerator
         if fp16:
             train_params["precision"] = 16 if fp16 else 32
             train_params["amp_level"] = fp16_opt_level
@@ -750,7 +750,7 @@ class aitextgen:
             train_params["benchmark"] = True
 
         if n_gpu > 1:
-            train_params["strategy"] = "ddp"
+            train_params["strategy"] = "dp"
             train_params["devices"] = n_gpu
 
         trainer = pl.Trainer(**train_params)
