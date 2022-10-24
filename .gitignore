@@ -1,5 +1,8 @@
 __pycache__
 test_notebooks/
+notebook/aitextgen/*
+notebook/aitextgen/__pycache__/*
+
 /build
 /dist
 *.egg-info

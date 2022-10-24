@@ -554,8 +554,10 @@ class aitextgen:
         output_dir: str = "trained_model",
         fp16: bool = False,
         fp16_opt_level: str = "O1",
+        devices: int = -1,
+        accelerator: str = None,
         n_gpu: int = -1,
-        tpu_cores: int = 0,
+        # tpu_cores: int = 0, # deprecated
         max_grad_norm: float = 0.5,
         gradient_accumulation_steps: int = 1,
         seed: int = None,
@@ -589,7 +591,7 @@ class aitextgen:
         model file folder.
         :param fp16: Boolean whether to use fp16, assuming using a compatible GPU/TPU.
         :param fp16_opt_level: Option level for FP16/APEX training.
-        :param n_gpu: Number of GPU to use (-1 implies all available GPUs)
+        :param devices: Number of devices to use (-1 implies all available GPUs)
         :param tpu_cores: Number of TPU cores to use (should be a multiple of 8)
         :param max_grad_norm: Maximum gradient normalization
         :param gradient_accumulation_steps: Number of gradient acc steps
@@ -650,6 +652,8 @@ class aitextgen:
                     num_layers_freeze < self.model.config.n_layer
                 ), "You are freezing more Transformer layers than in the model."
 
+        tpu_cores = devices if accelerator == "tpu" else 0
+
         if num_workers is None:
             # Use all CPU cores as workers if not training on CPU
             if is_gpu_used or tpu_cores > 0:
@@ -669,7 +673,7 @@ class aitextgen:
             num_workers=num_workers,
             save_every=save_every,
             generate_every=generate_every,
-            use_tpu=tpu_cores > 0,
+            use_tpu=accelerator == "tpu",
         )
 
         # Wrap the model in a pytorch-lightning module
@@ -736,7 +740,7 @@ class aitextgen:
             train_params["amp_backend"] = "apex"
 
         if tpu_cores > 0:
-            train_params["tpu_cores"] = tpu_cores
+            train_params["devices"] = devices
             train_params["gpus"] = 0
             n_gpu = 0
 
@@ -746,7 +750,8 @@ class aitextgen:
             train_params["benchmark"] = True
 
         if n_gpu > 1:
-            train_params["distributed_backend"] = "ddp"
+            train_params["strategy"] = "ddp"
+            train_params["devices"] = n_gpu
 
         trainer = pl.Trainer(**train_params)
         trainer.fit(train_model)
