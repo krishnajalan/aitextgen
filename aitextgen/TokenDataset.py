@@ -123,7 +123,7 @@ class TokenDataset(Dataset):
             self.block_size = block_size
             self.line_by_line = line_by_line
             self.str_suffix = "via cache."
-
+            self.file_path = file_path
             logger.info(
                 f"TokenDataset containing {self.num_subsets:,} subsets loaded {self.str_suffix}"
             )

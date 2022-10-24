@@ -750,6 +750,7 @@ class aitextgen:
             train_params["benchmark"] = True
 
         if n_gpu > 1:
+            train_params["accelerator"] = "gpu"
             train_params["strategy"] = "dp"
             train_params["devices"] = n_gpu
 
@@ -781,33 +782,19 @@ class aitextgen:
         """Trains a model across multiple input datasets, with automatic
         decay after each run."""
 
-        datasets = [
-            TokenDataset(
-                vocab_file=self.vocab_file,
-                merges_file=self.merges_file,
-                bos_token=self.bos_token,
-                eos_token=self.eos_token,
-                unk_token=self.unk_token,
-                file_path=x,
-                **kwargs,
-            )
-            if isinstance(x, str)
-            else x
-            for x in inputs
-        ]
 
         if not isinstance(learning_rate, list):
-            learning_rate = [learning_rate / (2 ** x) for x in range(len(datasets))]
+            learning_rate = [learning_rate / (2 ** x) for x in range(len(inputs))]
 
         if not isinstance(num_steps, list):
-            num_steps = [int(num_steps / (2 ** x)) for x in range(len(datasets))]
+            num_steps = [num_steps for x in range(len(inputs))]
 
-        assert len(datasets) == len(learning_rate) == len(num_steps), (
+        assert len(inputs) == len(learning_rate) == len(num_steps), (
             "The provided learning_rates or num_steps"
             + " is not equal to the number of inputs."
         )
 
-        for i, dataset in enumerate(datasets):
+        for i, dataset in enumerate(inputs):
             logger.info(f"Now training on {dataset} for {num_steps[i]:,} steps.")
             self.train(
                 dataset,
